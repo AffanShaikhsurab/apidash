@@ -71,31 +71,37 @@ Future<(HttpResponse?, Duration?, String?)> sendHttpRequest(
               }
             }
             http.StreamedResponse multiPartResponse =
-                await client.send(multiPartRequest);
+                await multiPartRequest.send();
             stopwatch.stop();
             http.Response convertedMultiPartResponse =
                 await convertStreamedResponse(multiPartResponse);
             return (convertedMultiPartResponse, stopwatch.elapsed, null);
           }
         }
-        
-        // Replace the switch statement with manual Request creation
-        final request = http.Request(
-          requestModel.method.name.toUpperCase(),
-          requestUrl,
-        );
-        
-        // Set headers
-        request.headers.addAll(headers);
-        
-        // Set body if needed
-        if (body != null && kMethodsWithBody.contains(requestModel.method)) {
-          request.bodyBytes = utf8.encode(body);
+        switch (requestModel.method) {
+          case HTTPVerb.get:
+            response = await client.get(requestUrl, headers: headers);
+            break;
+          case HTTPVerb.head:
+            response = await client.head(requestUrl, headers: headers);
+            break;
+          case HTTPVerb.post:
+            response =
+                await client.post(requestUrl, headers: headers, body: body);
+            break;
+          case HTTPVerb.put:
+            response =
+                await client.put(requestUrl, headers: headers, body: body);
+            break;
+          case HTTPVerb.patch:
+            response =
+                await client.patch(requestUrl, headers: headers, body: body);
+            break;
+          case HTTPVerb.delete:
+            response =
+                await client.delete(requestUrl, headers: headers, body: body);
+            break;
         }
-        
-        // Use the client to send the request
-        final streamedResponse = await client.send(request);
-        response = await http.Response.fromStream(streamedResponse);
       }
       if (apiType == APIType.graphql) {
         var requestBody = getGraphQLBody(requestModel);
